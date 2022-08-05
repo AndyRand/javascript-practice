@@ -108,7 +108,7 @@ console.table({
     'Empty Cases':emp,
 });
 
-showUndisruptedLine(_.flatMapDeep(GAME_TABLE));
+// showUndisruptedLine(_.flatMapDeep(GAME_TABLE));
 
 //Detecting piece position
 const reduce        = (x, y) => x+y*MATRIX_WIDTH;
@@ -119,47 +119,42 @@ const getValueAt    = (x, y) => getValue(x, y)(GAME_TABLE);
 //A move is a set of directions and checks to apply
 //The next move will depend on registered move positions and avalaible spaces around
 //Moving to a direction should return a destination based on a source
-//A direction is a function to apply to x,y 
-const applyDirection = direction => ({
-    t:  ([x, y]) => [x+0, y-1],
-    tr: ([x, y]) => [x+1, y-1],
-    rt: ([x, y]) => [x+1, y-1],
-    r:  ([x, y]) => [x+1, y+0],
-    br: ([x, y]) => [x+1, y+1],
-    rb: ([x, y]) => [x+1, y+1],
-    b:  ([x, y]) => [x+0, y+1],
-    bl: ([x, y]) => [x-1, y+1],
-    lb: ([x, y]) => [x-1, y+1],
-    l:  ([x, y]) => [x-1, y+0],
-    tl: ([x, y]) => [x-1, y-1],
-    lt: ([x, y]) => [x-1, y-1],
-}[direction] || (([x, y]) => [x, y]));
+//A direction is a function to apply to x,y
+const buildRange            = table => x => _.map(table, (el) => [x, el]);
+const squareCombinatory     = (start, end)  => _.flatMap(
+    _.range(start, end), (el) => 
+    buildRange(_.range(start , end))(el)
+);
 
+const convertFromArray      = source    => target => value => target[_.findIndex(source, (el) => _.isEqual(el, value))];
+const convertNumberToDirection = convertFromArray([...squareCombinatory(-1, 2)])(DIRECTIONS_ARRAY);
+const convertDirectionToNumber = convertFromArray(DIRECTIONS_ARRAY)(DIRECTIONS_ARRAY);
+// const setDirections      = direction => squareCombinatory(-1,2)[_.findIndex(DIRECTIONS_ARRAY,  (el) => _.isEqual(direction, el))];
+// const getDirections      = (x, y)    => DIRECTIONS_ARRAY[_.findIndex(squareCombinatory(-1, 2), (el) => _.isEqual(el, [y, x]))];
+
+const setDirections         = direction => convertDirectionToNumber(direction);
+const getDirections         = (x, y)    => convertNumberToDirection([y, x]);
+const applyDirection        = direction => (x, y)       => [x+setDirections(direction)[1], y+setDirections(direction)[0]];
 const applyFlatDirection    = direction => position     => applyDirection(direction)([...reverse(position)]);
 const moveToDirection       = table     => direction    => (x, y) => movePiece(table)(x, y)(...applyDirection(direction)([x, y]));
 const findUniquePiece       = table     => piece        => reverse(_.flatMapDeep(table).findIndex((value) => value === piece));
 const getPieceAt            = table     => (x, y)       => (table[y]||[])[x];
-const buildRange            = table     => x            => _.map(table, (el) => [x, el]);
 
-const squareCombinatory     = (start, end)  => _.flatMap(
-                                                    _.range(start, end), (el) => 
-                                                    buildRange(_.range(start , end))(el)
-                                                );
+
 
 const getPiecesAround = table => (x, y) => _.pull((_.map(squareCombinatory(-1,2), 
                                  (el)   => (el[0]!=0 || el[1]!=0) && getPieceAt(table)(x+el[1], y+el[0])||-1)),-1);
 
-const getDirections = (x, y) => DIRECTIONS_ARRAY[_.findIndex(squareCombinatory(-1, 2), (el) => _.isEqual(el, [y, x]))];
+
 
 const checkContent = value => table => (x,y) => getPieceAt(table)(x,y) === value;
 const checkEmptyContent = checkContent(CASE_EMPTY);
 //Returns all directions where there is no piece 
-const getAvalaibleDirectionsFrom = table => (x, y) => _.pull(_.map(squareCombinatory(-1, 2), (el) => checkEmptyContent(table)(x+el[1], y+el[0]) && getDirections(el[1], el[0])), 'c', false);
+const getAvalaibleDirectionsFrom = table => (x, y) => _.pull(_.map(squareCombinatory(-1, 2), 
+                                    el   => checkEmptyContent(table)(x+el[1], y+el[0]) 
+                                    && getDirections(el[1], el[0])), 'c', false);
 
 const y=3, x=4;
-const flat = 22;
-console.log("Reverse of "+ flat +" = ", reverse(flat));
-console.log("Value at x,y", getValueAt(x, y));
 
 //Applying directions
 const direction = 'tr';
@@ -167,28 +162,6 @@ const newPosition = applyDirection(direction)([x,y]);
 console.table({x, y});
 console.log("Applying direction ", direction);
 console.table({newPosition});
-console.log("Flat direction of", flat);
-console.log("Converting flat ", reverse(flat));
-const newFlatPosition = applyFlatDirection(direction)(flat);
-console.table({newFlatPosition});
-
-/*
-    let newBoard = buildEmptyBoard();
-    const piece = 'X';
-    const addXPiece = addPiece(piece);
-    addXPiece(newBoard)(x, y);
-    showGameTable(newBoard);
-    moveToDirection(newBoard)('b')(x, y);
-    showGameTable(newBoard);
-    moveToDirection(newBoard)('tl')(...findUniquePiece(newBoard)(piece));
-    showGameTable(newBoard);
-    moveToDirection(newBoard)('tr')(...findUniquePiece(newBoard)(piece));
-    showGameTable(newBoard);
-    moveToDirection(newBoard)('l')(...findUniquePiece(newBoard)(piece));
-    showGameTable(newBoard);
-    moveToDirection(GAME_TABLE)('b')(x, y);
-    showGameTable(GAME_TABLE);
-*/
 
 //Detecting piece around
 console.log("Pieces around", x, y);
