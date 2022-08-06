@@ -40,13 +40,14 @@ const buildEmptyBoard = () => {
     return Array.from(Array(MATRIX_HEIGHT), () => buildLine(CASE_EMPTY));
 }
 
-const addPiece  =  piece => table => (x, y) => (table[y]||[]).splice(x, 1, piece);
-const emptyCase = table => (x, y) => addPiece(CASE_EMPTY)(table)(x, y);
+const addPiece  =  piece => table   => (x, y) => (table[y]||[]).splice(x, 1, piece);
+const emptyCase =  table            => (x, y) => addPiece(CASE_EMPTY)(table)(x, y);
 
 const movePiece = table => (startX, startY) => (targetX, targetY) => {
     addPiece(table[startY][startX])(table)(targetX, targetY);
     addPiece(CASE_EMPTY)(table)(startX, startY);
 }
+
 const countPieces = array => _.countBy(_.flatMap(array));
 
 console.log("\n\n**********************FANORONA************************");
@@ -96,19 +97,22 @@ const showGameTable  = table => showCover(() => { showMatrix(showLine)(table) })
 showGameTable(GAME_TABLE);
 console.log("\nGame Infos:");
 
-const {
-    '1' : p1,
-    '2' : p2,
-    '0': emp,
-} = countPieces(GAME_TABLE);
+const reportGameInfo = table => {
+    const {
+        '1' : p1,
+        '2' : p2,
+        '0': emp,
+    } = countPieces(table);
 
-console.table({
-    'Player 1': p1, 
-    'Player 2': p2, 
-    'Empty Cases':emp,
-});
+    console.table({
+        'Player 1': p1, 
+        'Player 2': p2, 
+        'Empty Cases':emp,
+    });
+}
 
-// showUndisruptedLine(_.flatMapDeep(GAME_TABLE));
+reportGameInfo(GAME_TABLE);
+
 
 //Detecting piece position
 const reduce        = (x, y) => x+y*MATRIX_WIDTH;
@@ -126,7 +130,7 @@ const squareCombinatory     = (start, end)  => _.flatMap(
     buildRange(_.range(start , end))(el)
 );
 
-const convertFromArray      = source    => target => value => target[_.findIndex(source, (el) => _.isEqual(el, value))];
+const convertFromArray         = source    => target => value => target[_.findIndex(source, (el) => _.isEqual(el, value))];
 const convertNumberToDirection = convertFromArray([...squareCombinatory(-1, 2)])(DIRECTIONS_ARRAY);
 const convertDirectionToNumber = convertFromArray(DIRECTIONS_ARRAY)(DIRECTIONS_ARRAY);
 // const setDirections      = direction => squareCombinatory(-1,2)[_.findIndex(DIRECTIONS_ARRAY,  (el) => _.isEqual(direction, el))];
@@ -183,3 +187,5 @@ console.log(getAvalaibleDirectionsFrom(GAME_TABLE)(x, y));
 //Game rules
 
 console.log("\n**************************************************************************************\n");
+
+console.table(convertNumberToDirection(1, 0));

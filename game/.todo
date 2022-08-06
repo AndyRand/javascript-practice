@@ -1,0 +1,56 @@
+//TODO
+-Generate game table
+-Formatting output
+-Detect position
+-Applying directional move
+-Applying specific move 
+
+//Detecting piece target
+//Can move a piece
+//Moving piece
+//Move effect
+//Win condition
+//Game rules
+
+
+GET
+
+
+SET
+
+
+OTHERS
+
+
+OUTPUT
+
+
+INPUT
+
+
+
+-Atomic purpose (on a random value)
+    verb
+
+
+
+-Applied on an element of the table
+    position, row, column, direction
+    
+    create
+    update
+    delete
+    set
+    get
+
+
+-Applied on the game table 
+    build
+    apply
+    put
+    remove
+
+-Showing on output
+    print
+    show
+    
