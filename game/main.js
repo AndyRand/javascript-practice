@@ -1,191 +1,185 @@
+const { green, white } = require('colors');
 var _ = require('lodash');
 
 require("@babel/core").transform("code", {
     presets: ["@babel/preset-env"],
 });
 
-let GAME_TABLE = [];
+const colors = require('colors');
 
-const MATRIX_WIDTH  = 9;
-const MATRIX_HEIGHT = 5;
+let TABLE_GAME = [];
+
+const BOARD_WIDTH   = 9;
+const BOARD_HEIGHT  = 5;
 const CASE_EMPTY    = '0';
 const CASE_PLAYER_1 = '1';
 const CASE_PLAYER_2 = '2';
 const DIRECTIONS_ARRAY = ['tl','t','tr','l','c','r','bl','b','br'];
 
-
-//Building the matrix
-const alternate = (a, b) => a.length ? [a[0], ...alternate(b, a.slice(1))] : b;
-
-const buildLine = content => {
-    const array = Array.from(Array(MATRIX_WIDTH));
-    
-    _.fill(array, content, 0, MATRIX_WIDTH);
-
-    return array;
-};
-
-const buildMiddleLine = () => {
-    const quarter = Math.trunc(MATRIX_WIDTH/4); 
-    const player1 = Array.from(Array(quarter), () => CASE_PLAYER_1);
-    const player2 = Array.from(Array(quarter), () => CASE_PLAYER_2);
-    return [
-        ...alternate(player1, player2),
-        CASE_EMPTY,
-        ...alternate(player1, player2)
-    ];
-};
-
-const buildEmptyBoard = () => {
-    return Array.from(Array(MATRIX_HEIGHT), () => buildLine(CASE_EMPTY));
-}
-
-const addPiece  =  piece => table   => (x, y) => (table[y]||[]).splice(x, 1, piece);
-const emptyCase =  table            => (x, y) => addPiece(CASE_EMPTY)(table)(x, y);
-
-const movePiece = table => (startX, startY) => (targetX, targetY) => {
-    addPiece(table[startY][startX])(table)(targetX, targetY);
-    addPiece(CASE_EMPTY)(table)(startX, startY);
-}
-
-const countPieces = array => _.countBy(_.flatMap(array));
-
-console.log("\n\n**********************FANORONA************************");
-
-//Initializing a game
-const restartGameBoard = () => {
-    const middle = Math.trunc(MATRIX_HEIGHT/2);
-    const array  = Array.from(Array(MATRIX_HEIGHT), () => Array(MATRIX_WIDTH));
-    _.fill(array, buildLine(CASE_PLAYER_1), 0, middle);
-    _.fill(array, buildMiddleLine(), middle, middle+1);
-    _.fill(array, buildLine(CASE_PLAYER_2), middle+1, MATRIX_HEIGHT);
-    return array;
-};
-
-const init = () => {
-    GAME_TABLE = restartGameBoard();
-}
-
-init();
-
-//Output formating
-const showLine = array => array.map((element)=> {
-    process.stdout.write('\t'+element);
+colors.enable();
+colors.setTheme({
+    silly:      'rainbow',
+    input:      'grey',
+    verbose:    'cyan',
+    prompt:     'grey',
+    info:       'green',
+    data:       'grey',
+    help:       'cyan',
+    warn:       'yellow',
+    debug:      'blue',
+    error:      'red',
+    primary:    ['bgBrightRed', 'bold', 'hidden'],
+    secondary:  ['bgBrightBlue', 'bold', 'hidden'],
+    neutral:    ['bgGrey','hidden'],
 });
 
-const showUndisruptedLine = array => array.map((element)=> {
-    process.stdout.write(element);
+
+//Atomic functions
+
+const alternateValues       = (a, b) => a.length ? [a[0], ...alternateValues(b, a.slice(1))] : b;
+const rangeValues           = array => row => _.map(array, (el) => [row, el]);
+
+const countElements         = array => _.countBy(_.flatMap(array));
+const squareElements        = (start, end)  => _.flatMap(
+    _.range(start, end), (el) => 
+    rangeValues(_.range(start , end))(el)
+);
+
+const transposeElements     = source => target => value => target[_.findIndex(source, (el) => _.isEqual(el, value))];
+
+
+//Element functions
+
+const createLine            = width     => content          => Array.from(Array(width), () => content);
+const createLineMultiple    = content   => (height, width)  => _.chunk(Array.from(Array(height*width), () => content), width);
+const createLineMiddle      = width     => (content_1, content_2, content_center) => [
+    ...alternateValues(Array.from(Array(Math.trunc(width/4)), 
+    () => content_1),
+    Array.from(Array(Math.trunc(width/4)), 
+    () => content_2)),
+    content_center,
+    ...alternateValues(Array.from(Array(Math.trunc(width/4)), 
+    () => content_1), 
+    Array.from(Array(Math.trunc(width/4)), 
+    () => content_2)),
+];
+
+//Start using defined constants
+
+const buildBoardGame = () => [
+    ...createLineMultiple(CASE_PLAYER_1)(Math.trunc(BOARD_HEIGHT/2), BOARD_WIDTH),
+    createLineMiddle(BOARD_WIDTH)(CASE_PLAYER_1, CASE_PLAYER_2, CASE_EMPTY),
+    ...createLineMultiple(CASE_PLAYER_2)(Math.trunc(BOARD_HEIGHT/2), BOARD_WIDTH),
+];
+
+const getBoardIndexFromPosition  = (x, y) => x+y*BOARD_WIDTH;
+const getBoardPositionFromIndex  = index  => [ index % BOARD_WIDTH , Math.trunc(index/BOARD_WIDTH)];
+const getBoardValue              = (x, y) => board => _.flatMap(board)[getBoardIndexFromPosition(x, y)];
+const isEmptyValue               = (x, y) => board => getBoardValue(x, y)(board) === CASE_EMPTY;
+
+const transposePositionIntoDirection   = (x, y)    => transposeElements([...squareElements(-1, 2)])(DIRECTIONS_ARRAY)([y, x])
+const transposeDirectionIntoPosition   = direction => transposeElements(DIRECTIONS_ARRAY)([...squareElements(-1, 2)])(direction);
+const applyDirection                   = (x, y)    => direction =>  [x+transposeDirectionIntoPosition(direction)[1], y+transposeDirectionIntoPosition(direction)[0]];
+const applyFlatDirection               = direction => index     => applyDirection([...getBoardPositionFromIndex(index)])(direction);
+
+const addValueToBoard           = (x, y) => board => value  =>  (board[y]||[]).splice(x, 1, value);
+const removeValueFromBoard      = (x, y) => board => (board[y]||[]).splice(x, 1, CASE_EMPTY);
+
+const moveBoard                 = board  => (sourceX, sourceY) => (targetX, targetY) =>  {
+    addValueToBoard(targetX, targetY)(board)(board[sourceY][sourceX]);
+    removeValueFromBoard(sourceX, sourceY)(board);    
+    return board;
+}
+
+const moveBoardToDirection      = (x, y) => direction => board  => moveBoard(board)(x, y)(...applyDirection(x, y)(direction));
+const getBoardValuesAround      = (x, y) => board  =>  _.pull((_.map(squareElements(-1,2), (el) => (el[0]!=0 || el[1]!=0) && getBoardValue(x+el[1], y+el[0])(board)||-1)),-1);
+const getBoardDirectionsFrom    = (x, y) => board  =>  _.pull(_.map(squareElements(-1,2), (el) => isEmptyValue(x+el[1], y+el[0])(board) && transposePositionIntoDirection(el[1], el[0])), 'c', false);
+
+//Table functions
+
+const moveTableToDirection      = (x, y) => direction => moveBoardToDirection(x, y)(direction)(TABLE_GAME);
+const getTableValue             = (x, y) => getBoardValue(x, y)(TABLE_GAME);
+const getTablePiecesAround      = (x, y) => getBoardValuesAround(x, y)(TABLE_GAME);
+const getTableDirectionsFrom    = (x, y) => getBoardDirectionsFrom(x, y)(TABLE_GAME);
+
+
+//Output functions
+
+const colorPiece = piece => ({    
+    [CASE_PLAYER_1]:  piece.primary,
+    [CASE_PLAYER_2]:  piece.secondary,
+    [CASE_EMPTY]:     piece.neutral,
+}[piece] || piece);
+
+const printLine = array => array.map((element)=> {    
+    process.stdout.write('\t'+colorPiece(element));
 });
 
-const showMatrix = lines => matrix => matrix.map((element) => {
+const printLineUndisrupted = array => array.map((element)=> {
+    process.stdout.write(element.prompt.bgGrey);
+});
+
+const printBoard = lines => board => board.map((element) => {
     lines(element);
     console.log('\n');
 });
 
-const showCover = showMatrix => {
-    const cover = buildLine('________');
+
+const showBoardCover = printBoard => {
+    process.stdout.write('\n');
+    const cover = createLine(BOARD_WIDTH)('________');
     process.stdout.write('\t');
-    showUndisruptedLine(cover);
+    printLineUndisrupted(cover);
     console.log('\n\n');
-    showMatrix();
+    printBoard();
     process.stdout.write('\t');
-    showUndisruptedLine(cover);
+    printLineUndisrupted(cover);
     console.log('\n');
 };
 
-const showGameTable  = table => showCover(() => { showMatrix(showLine)(table) });
-showGameTable(GAME_TABLE);
-console.log("\nGame Infos:");
+const showTableGame   = table => showBoardCover(() => { printBoard(printLine)(table) });
 
-const reportGameInfo = table => {
+const showTableReport = table => {
     const {
         '1' : p1,
         '2' : p2,
         '0': emp,
-    } = countPieces(table);
+    } = countElements(table);
 
     console.table({
         'Player 1': p1, 
         'Player 2': p2, 
         'Empty Cases':emp,
     });
+};
+
+
+
+//Executed functions
+console.log("\n\n\t\t\t\t\t**********************FANORONA************************".prompt);
+
+const init = () => {
+    TABLE_GAME = buildBoardGame();    
 }
 
-reportGameInfo(GAME_TABLE);
+init();
 
+showTableGame(TABLE_GAME);
 
-//Detecting piece position
-const reduce        = (x, y) => x+y*MATRIX_WIDTH;
-const reverse       = position => [ position % MATRIX_WIDTH , Math.trunc(position/MATRIX_WIDTH)];
-const getValue      = (x, y) => table => _.flatMap(table)[reduce(x, y)];
-const getValueAt    = (x, y) => getValue(x, y)(GAME_TABLE);
+console.log("\nGame Infos:".prompt);
+showTableReport(TABLE_GAME);
 
-//A move is a set of directions and checks to apply
-//The next move will depend on registered move positions and avalaible spaces around
-//Moving to a direction should return a destination based on a source
-//A direction is a function to apply to x,y
-const buildRange            = table => x => _.map(table, (el) => [x, el]);
-const squareCombinatory     = (start, end)  => _.flatMap(
-    _.range(start, end), (el) => 
-    buildRange(_.range(start , end))(el)
-);
+// console.table(transposePositionToDirection(1, 1));
 
-const convertFromArray         = source    => target => value => target[_.findIndex(source, (el) => _.isEqual(el, value))];
-const convertNumberToDirection = convertFromArray([...squareCombinatory(-1, 2)])(DIRECTIONS_ARRAY);
-const convertDirectionToNumber = convertFromArray(DIRECTIONS_ARRAY)(DIRECTIONS_ARRAY);
-// const setDirections      = direction => squareCombinatory(-1,2)[_.findIndex(DIRECTIONS_ARRAY,  (el) => _.isEqual(direction, el))];
-// const getDirections      = (x, y)    => DIRECTIONS_ARRAY[_.findIndex(squareCombinatory(-1, 2), (el) => _.isEqual(el, [y, x]))];
-
-const setDirections         = direction => convertDirectionToNumber(direction);
-const getDirections         = (x, y)    => convertNumberToDirection([y, x]);
-const applyDirection        = direction => (x, y)       => [x+setDirections(direction)[1], y+setDirections(direction)[0]];
-const applyFlatDirection    = direction => position     => applyDirection(direction)([...reverse(position)]);
-const moveToDirection       = table     => direction    => (x, y) => movePiece(table)(x, y)(...applyDirection(direction)([x, y]));
-const findUniquePiece       = table     => piece        => reverse(_.flatMapDeep(table).findIndex((value) => value === piece));
-const getPieceAt            = table     => (x, y)       => (table[y]||[])[x];
-
-
-
-const getPiecesAround = table => (x, y) => _.pull((_.map(squareCombinatory(-1,2), 
-                                 (el)   => (el[0]!=0 || el[1]!=0) && getPieceAt(table)(x+el[1], y+el[0])||-1)),-1);
-
-
-
-const checkContent = value => table => (x,y) => getPieceAt(table)(x,y) === value;
-const checkEmptyContent = checkContent(CASE_EMPTY);
-//Returns all directions where there is no piece 
-const getAvalaibleDirectionsFrom = table => (x, y) => _.pull(_.map(squareCombinatory(-1, 2), 
-                                    el   => checkEmptyContent(table)(x+el[1], y+el[0]) 
-                                    && getDirections(el[1], el[0])), 'c', false);
-
-const y=3, x=4;
-
-//Applying directions
-const direction = 'tr';
-const newPosition = applyDirection(direction)([x,y]);
+const y=1, x=4;
+const direction = 'b';
+console.log('We start from'.prompt);
 console.table({x, y});
-console.log("Applying direction ", direction);
+showTableGame(TABLE_GAME);
+
+console.log('Moving piece from '.prompt, {x, y},'to direction '.prompt,  direction.bold);
+
+moveTableToDirection(x, y)(direction);
+const newPosition = applyDirection(x, y)(direction);
 console.table({newPosition});
-
-//Detecting piece around
-console.log("Pieces around", x, y);
-console.table(getPiecesAround(GAME_TABLE)(x, y));
-const dirX = -1, dirY = 1;
-
-emptyCase(GAME_TABLE)(3, 3);
-emptyCase(GAME_TABLE)(3, 5);
-console.log("NEW BOARD");
-showGameTable(GAME_TABLE);
-console.log("Avalaible DIRECTIONS from", x, y);
-console.log(getAvalaibleDirectionsFrom(GAME_TABLE)(x, y));
-
-//Detecting piece target
-//Can move a piece
-//Moving piece
-//Move effect
-//Win condition
-//Game rules
-
-console.log("\n**************************************************************************************\n");
-
-console.table(convertNumberToDirection(1, 0));
+showTableGame(TABLE_GAME);
