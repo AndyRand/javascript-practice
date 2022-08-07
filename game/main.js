@@ -36,14 +36,11 @@ colors.setTheme({
 
 //Atomic functions
 
-const alternateValues       = (a, b) => a.length ? [a[0], ...alternateValues(b, a.slice(1))] : b;
-const rangeValues           = array => row => _.map(array, (el) => [row, el]);
+const alternateValues       = (a, b)        => a.length ? [a[0], ...alternateValues(b, a.slice(1))] : b;
+const rangeValues           = array         => row => _.map(array, (el) => [row, el]);
 
-const countElements         = array => _.countBy(_.flatMap(array));
-const squareElements        = (start, end)  => _.flatMap(
-    _.range(start, end), (el) => 
-    rangeValues(_.range(start , end))(el)
-);
+const countElements         = array         => _.countBy(_.flatMap(array));
+const squareElements        = (start, end)  => _.flatMap(_.range(start, end), (el) => rangeValues(_.range(start , end))(el));
 
 const transposeElements     = source => target => value => target[_.findIndex(source, (el) => _.isEqual(el, value))];
 
@@ -72,18 +69,21 @@ const buildBoardGame = () => [
     ...createLineMultiple(CASE_PLAYER_2)(Math.trunc(BOARD_HEIGHT/2), BOARD_WIDTH),
 ];
 
-const getBoardIndexFromPosition  = (x, y) => x+y*BOARD_WIDTH;
-const getBoardPositionFromIndex  = index  => [ index % BOARD_WIDTH , Math.trunc(index/BOARD_WIDTH)];
-const getBoardValue              = (x, y) => board => _.flatMap(board)[getBoardIndexFromPosition(x, y)];
-const isEmptyValue               = (x, y) => board => getBoardValue(x, y)(board) === CASE_EMPTY;
+const getBoardIndexFromPosition         = (x, y)    => x+y*BOARD_WIDTH;
+const getBoardPositionFromIndex         = index     => [ index % BOARD_WIDTH , Math.trunc(index/BOARD_WIDTH)];
+const getBoardValue                     = (x, y)    => board => _.flatMap(board)[getBoardIndexFromPosition(x, y)];
+const isEmptyValue                      = (x, y)    => board => getBoardValue(x, y)(board) === CASE_EMPTY;
 
-const transposePositionIntoDirection   = (x, y)    => transposeElements([...squareElements(-1, 2)])(DIRECTIONS_ARRAY)([y, x])
-const transposeDirectionIntoPosition   = direction => transposeElements(DIRECTIONS_ARRAY)([...squareElements(-1, 2)])(direction);
-const applyDirection                   = (x, y)    => direction =>  [x+transposeDirectionIntoPosition(direction)[1], y+transposeDirectionIntoPosition(direction)[0]];
-const applyFlatDirection               = direction => index     => applyDirection([...getBoardPositionFromIndex(index)])(direction);
+const transposePositionIntoDirection    = (x, y)    => transposeElements([...squareElements(-1, 2)])(DIRECTIONS_ARRAY)([y, x])
+const transposeDirectionIntoPosition    = direction => transposeElements(DIRECTIONS_ARRAY)([...squareElements(-1, 2)])(direction);
+const applyDirection                    = (x, y)    => direction =>  [x+transposeDirectionIntoPosition(direction)[1], y+transposeDirectionIntoPosition(direction)[0]];
+const applyFlatDirection                = index     => direction =>  applyDirection([...getBoardPositionFromIndex(index)])(direction);
 
-const addValueToBoard           = (x, y) => board => value  =>  (board[y]||[]).splice(x, 1, value);
-const removeValueFromBoard      = (x, y) => board => (board[y]||[]).splice(x, 1, CASE_EMPTY);
+const addValueToBoard                   = (x, y)    => board => value  =>  (board[y]||[]).splice(x, 1, value);
+const removeValueFromBoard              = (x, y)    => board => (board[y]||[]).splice(x, 1, CASE_EMPTY);
+const removeValueMultipleFromBoard      = (x, y)    => direction => board => {
+
+}
 
 const moveBoard                 = board  => (sourceX, sourceY) => (targetX, targetY) =>  {
     addValueToBoard(targetX, targetY)(board)(board[sourceY][sourceX]);
@@ -141,9 +141,9 @@ const showTableGame   = table => showBoardCover(() => { printBoard(printLine)(ta
 
 const showTableReport = table => {
     const {
-        '1' : p1,
-        '2' : p2,
-        '0': emp,
+        [CASE_PLAYER_1] : p1,
+        [CASE_PLAYER_2] : p2,
+        [CASE_EMPTY]    : emp,
     } = countElements(table);
 
     console.table({
@@ -169,8 +169,6 @@ showTableGame(TABLE_GAME);
 console.log("\nGame Infos:".prompt);
 showTableReport(TABLE_GAME);
 
-// console.table(transposePositionToDirection(1, 1));
-
 const y=1, x=4;
 const direction = 'b';
 console.log('We start from'.prompt);
@@ -180,6 +178,4 @@ showTableGame(TABLE_GAME);
 console.log('Moving piece from '.prompt, {x, y},'to direction '.prompt,  direction.bold);
 
 moveTableToDirection(x, y)(direction);
-const newPosition = applyDirection(x, y)(direction);
-console.table({newPosition});
 showTableGame(TABLE_GAME);
