@@ -28,9 +28,9 @@ colors.setTheme({
     warn:       'yellow',
     debug:      'blue',
     error:      'red',
-    primary:    ['bgBrightRed', 'bold', 'hidden'],
-    secondary:  ['bgBrightBlue', 'bold', 'hidden'],
-    neutral:    ['bgGrey','hidden'],
+    primary:    ['brightRed', 'bgBrightRed'  , 'bold', 'hidden'],
+    secondary:  ['brightBlue', 'bgBrightBlue' , 'bold', 'hidden'],
+    neutral:    ['grey', 'bgGrey','hidden'],
 });
 
 
@@ -81,8 +81,31 @@ const applyFlatDirection                = index     => direction =>  applyDirect
 
 const addValueToBoard                   = (x, y)    => board => value  =>  (board[y]||[]).splice(x, 1, value);
 const removeValueFromBoard              = (x, y)    => board => (board[y]||[]).splice(x, 1, CASE_EMPTY);
-const removeValueMultipleFromBoard      = (x, y)    => direction => board => {
 
+
+//Remove includes the start until we find the stop value going to direction. 
+//The stop value is not removed
+const removeValueMultipleFromBoard      = (x, y)    => direction => board => stopValues => {
+    
+    console.log('Board entering');
+    console.log(board);
+
+    _.overSome(_.identity)
+    _.findIndex(board[y], (element) => element)
+
+    //Removing horizontal as from given x + direction (l, r)
+    switch(direction){
+        case 'r': _.fill(board[y], 'X', x+1 , x+3+1); break;
+        case 'l': _.fill(board[y], 'X', x-3 , x); break;
+        default:;
+    }
+    
+    //Removing vertical as from given y + direction (t, b)
+
+    //Removing diagonal is NOT the combine of both
+
+    console.log('Board updated');
+    console.log(board);
 }
 
 const moveBoard                 = board  => (sourceX, sourceY) => (targetX, targetY) =>  {
@@ -169,7 +192,7 @@ showTableGame(TABLE_GAME);
 console.log("\nGame Infos:".prompt);
 showTableReport(TABLE_GAME);
 
-const y=1, x=4;
+const y=2, x=4;
 const direction = 'b';
 console.log('We start from'.prompt);
 console.table({x, y});
@@ -177,5 +200,7 @@ showTableGame(TABLE_GAME);
 
 console.log('Moving piece from '.prompt, {x, y},'to direction '.prompt,  direction.bold);
 
-moveTableToDirection(x, y)(direction);
+// moveTableToDirection(x, y)(direction);
+// showTableGame(TABLE_GAME);
+removeValueMultipleFromBoard(x, y)('l')(TABLE_GAME)(2);
 showTableGame(TABLE_GAME);
