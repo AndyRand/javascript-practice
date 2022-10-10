@@ -87,16 +87,19 @@ const removeValueFromBoard              = (x, y)    => board => (board[y]||[]).s
 //The stop value is not removed
 const removeValueMultipleFromBoard      = (x, y)    => direction => board => stopValues => {
     
-    console.log('Board entering');
-    console.log(board);
-
-    _.overSome(_.identity)
-    _.findIndex(board[y], (element) => element)
+    //  console.log('Board entering');
+    //  console.log(board);
+    const tmpRange = 2;
+    const verticalRangeTop = _.range(y - 1, y-1-tmpRange);
+    const verticalRangeBottom = _.range(y+1, y+1+tmpRange);
+    const fillValue = 'X';
 
     //Removing horizontal as from given x + direction (l, r)
     switch(direction){
-        case 'r': _.fill(board[y], 'X', x+1 , x+3+1); break;
-        case 'l': _.fill(board[y], 'X', x-3 , x); break;
+        case 'r': _.fill(board[y], fillValue, x+1 , x+1+tmpRange); break;
+        case 'l': _.fill(board[y], fillValue, x-tmpRange , x); break;
+        case 't': _.each(verticalRangeTop,      (value) => board[value][x]          = fillValue); break;
+        case 'b': _.each(verticalRangeBottom,   (value) => board[value][x]          = fillValue); break;
         default:;
     }
     
@@ -104,14 +107,14 @@ const removeValueMultipleFromBoard      = (x, y)    => direction => board => sto
 
     //Removing diagonal is NOT the combine of both
 
-    console.log('Board updated');
-    console.log(board);
+    // console.log('Board updated');
+    // console.log(board);
 }
 
 const moveBoard                 = board  => (sourceX, sourceY) => (targetX, targetY) =>  {
     addValueToBoard(targetX, targetY)(board)(board[sourceY][sourceX]);
     removeValueFromBoard(sourceX, sourceY)(board);    
-    return board;
+    return [targetY, targetX];
 }
 
 const moveBoardToDirection      = (x, y) => direction => board  => moveBoard(board)(x, y)(...applyDirection(x, y)(direction));
@@ -192,15 +195,49 @@ showTableGame(TABLE_GAME);
 console.log("\nGame Infos:".prompt);
 showTableReport(TABLE_GAME);
 
-const y=2, x=4;
-const direction = 'b';
+const y=0, x=4;
+const direction = 'b', direction2 = 'l'
 console.log('We start from'.prompt);
 console.table({x, y});
 showTableGame(TABLE_GAME);
 
 console.log('Moving piece from '.prompt, {x, y},'to direction '.prompt,  direction.bold);
 
-// moveTableToDirection(x, y)(direction);
-// showTableGame(TABLE_GAME);
-removeValueMultipleFromBoard(x, y)('l')(TABLE_GAME)(2);
+let [newY, newX] = moveTableToDirection(x, y)(direction);
+removeValueMultipleFromBoard(newX, newY)(direction)(TABLE_GAME)(2);
+
+showTableGame(TABLE_GAME);
+
+console.log('Moving piece from '.prompt, {newX, newY},'to direction '.prompt,  direction2.bold);
+[newY, newX]= moveTableToDirection(newX, newY)(direction2);
+removeValueMultipleFromBoard(newX, newY)(direction2)(TABLE_GAME)(2);
+
+showTableGame(TABLE_GAME);;
+
+console.log('Moving piece from '.prompt, {newX, newY},'to direction '.prompt,  direction.bold);
+[newY, newX]= moveTableToDirection(newX, newY)(direction);
+removeValueMultipleFromBoard(newX, newY)(direction)(TABLE_GAME)(2);
+
+
+showTableGame(TABLE_GAME);
+
+console.log('Moving piece from '.prompt, {newX, newY},'to direction '.prompt,  'r'.bold);
+[newY, newX]= moveTableToDirection(newX, newY)('r');
+removeValueMultipleFromBoard(newX, newY)('r')(TABLE_GAME)(2);
+
+
+showTableGame(TABLE_GAME);
+
+console.log('Moving piece from '.prompt, {newX, newY},'to direction '.prompt,  'r'.bold);
+[newY, newX]= moveTableToDirection(newX, newY)('r');
+removeValueMultipleFromBoard(newX, newY)('r')(TABLE_GAME)(2);
+
+
+showTableGame(TABLE_GAME);
+
+console.log('Moving piece from '.prompt, {newX, newY},'to direction '.prompt,  'r'.bold);
+[newY, newX]= moveTableToDirection(newX, newY)('r');
+removeValueMultipleFromBoard(newX, newY)('r')(TABLE_GAME)(2);
+
+
 showTableGame(TABLE_GAME);
